@@ -2,6 +2,8 @@
 
 simple, zero dependency audio visualizations for svelte, especially useful for visualizing voice input and output.
 
+https://github.com/user-attachments/assets/056b0226-75e2-438f-82a1-cfbc7aace468
+
 ## Installation
 
 copy the `lib/visualizations` folder into your project.
