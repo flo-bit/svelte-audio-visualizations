@@ -73,6 +73,9 @@
 					>{state === 'music' ? 'stop ' : 'start '}music</button
 				>
 			</div>
+			<div class="text-stone-500 text-sm font-semibold">
+				made by <a href="https://flo-bit.dev/" class="text-amber-600">flo-bit</a>
+			</div>
 		</div>
 
 		<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
