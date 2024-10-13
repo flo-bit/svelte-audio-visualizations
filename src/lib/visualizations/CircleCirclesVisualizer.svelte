@@ -1,50 +1,36 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
-	import { WavRecorder, WavStreamPlayer, AudioFilePlayer } from './wavtools';
-	import { normalizeArray } from './wav_helper';
-
-	// props that can be passed to the component
-	export let audioInput:
-		| WavRecorder
-		| WavStreamPlayer
-		| AudioFilePlayer
-		| null
-		| (() => { values: Float32Array }) = null;
-
-	export let analysisType: 'voice' | 'frequency' | 'music' | undefined = 'voice';
+	export let values:Float32Array;	
 
 	export let color: string | undefined = undefined;
 	export let startHue: number | undefined = undefined;
 	export let endHue: number | undefined = undefined;
-
 	export let minRadius: number = 0.15;
 	export let maxRadius: number = 0.5;
-
 	export let rotate = 1;
-
-	// number of circles to draw
-	export let detail = 50;
-
 	export let varyBrightness = false;
+	export let glow = 3;
 
 	let canvas: HTMLCanvasElement;
-	let clientCtx: CanvasRenderingContext2D | null = null;
-	let isLoaded = false;
+	let clientWidth:number;
+	let clientHeight:number;
 
-	const emptyResult = { values: new Float32Array([0]) };
+	$:if(canvas){
+		const ctx = canvas.getContext('2d')!;
 
-	const drawCircularBars = (
-		canvas: HTMLCanvasElement,
-		ctx: CanvasRenderingContext2D,
-		data: Float32Array
-	) => {
+		//Update canvas size
+		canvas.width = clientWidth;
+		canvas.height = clientHeight;
+
+		//Clear
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
 		const centerX = canvas.width / 2;
 		const centerY = canvas.height / 2;
-		const points = normalizeArray(data, detail, true);
+		//const points = normalizeArray(data, detail, true);
 		const smaller = Math.min(canvas.width, canvas.height);
 
-		const minCircleSize = (Math.PI * 2 * minRadius * smaller) / detail / 2;
-		const maxCircleSize = (Math.PI * 2 * maxRadius * smaller) / detail / 2;
+		const minCircleSize = (Math.PI * 2 * minRadius * smaller) / values.length / 2;
+		const maxCircleSize = (Math.PI * 2 * maxRadius * smaller) / values.length / 2;
 
 		const minCircleHeight = minRadius * smaller;
 		const maxCircleHeight = (maxRadius - minRadius) * smaller;
@@ -54,11 +40,11 @@
 			ctx.fillStyle = color;
 		}
 
-		for (let i = 0; i < detail; i++) {
-			const amplitude = points[i];
+		for (let i = 0; i < values.length; i++) {
+			const amplitude = values[i];
 			const circleHeight = Math.max(minCircleHeight, amplitude * maxCircleHeight);
 			const circleSize = minCircleSize + (maxCircleSize - minCircleSize) * amplitude;
-			const angle = (i / detail) * Math.PI * 2 + rotate;
+			const angle = (i / values.length) * Math.PI * 2 + rotate;
 
 			// Save the current context state
 			ctx.save();
@@ -69,7 +55,7 @@
 
 			if (startHue !== undefined && endHue !== undefined) {
 				// t goes from 0 to 1, then back to 0 (startHue to endHue back to startHue)
-				let t = (i / detail) * 2;
+				let t = (i / values.length) * 2;
 				if (t > 1) {
 					t = 2 - t;
 				}
@@ -87,65 +73,11 @@
 		}
 	};
 
-	const render = () => {
-		if (!isLoaded) return;
-
-		if (!canvas) {
-			window.requestAnimationFrame(render);
-			return;
-		}
-
-		clientCtx = clientCtx ?? canvas.getContext('2d');
-		if (!clientCtx) {
-			window.requestAnimationFrame(render);
-			return;
-		}
-		clientCtx.clearRect(0, 0, canvas.width, canvas.height);
-
-		let result = emptyResult;
-
-		if (
-			(audioInput instanceof WavRecorder && audioInput.recording) ||
-			(audioInput instanceof WavStreamPlayer && audioInput.analyser) ||
-			(audioInput instanceof AudioFilePlayer && audioInput.analyser)
-		) {
-			result = audioInput.getFrequencies(analysisType);
-		} else if (typeof audioInput === 'function') {
-			result = audioInput();
-		}
-
-		drawCircularBars(canvas, clientCtx, result.values);
-
-		window.requestAnimationFrame(render);
-	};
-
-	onMount(() => {
-		isLoaded = true;
-
-		// resize canvas to fit parent
-		if (canvas) {
-			canvas.width = canvas.offsetWidth * 2;
-			canvas.height = canvas.offsetHeight * 2;
-		}
-		window.addEventListener('resize', () => {
-			if (canvas) {
-				canvas.width = canvas.offsetWidth * 2;
-				canvas.height = canvas.offsetHeight * 2;
-			}
-		});
-
-		render();
-	});
-
-	onDestroy(() => {
-		isLoaded = false;
-	});
-
-	export let glow = 3;
 </script>
 
-<canvas bind:this={canvas} class="filter-blur-circle-circles" style="width: 100%; height: 100%"
-></canvas>
+<div bind:clientWidth bind:clientHeight class="w-full h-full">
+	<canvas bind:this={canvas} class="filter-blur-circle-circles" style="width: 100%; height: 100%"></canvas>
+</div>
 
 {#if glow}
 	<svg width="0" height="0">

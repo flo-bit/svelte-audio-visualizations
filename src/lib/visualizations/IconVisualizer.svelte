@@ -1,64 +1,9 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
-	import { WavRecorder, WavStreamPlayer, AudioFilePlayer } from './wavtools';
-	import { normalizeArray } from './wav_helper';
+	export let value:number;
 
-	// props that can be passed to the component
-	export let audioInput:
-		| WavRecorder
-		| WavStreamPlayer
-		| AudioFilePlayer
-		| null
-		| (() => { values: Float32Array }) = null;
-
-	export let analysisType: 'voice' | 'frequency' | 'music' | undefined = 'voice';
-
-	// color of the static icon part
 	export let color: string | undefined = '#f59e0b';
-
-	// color of the background of the moving icon part (visible when audio is not loud)
 	export let backgroundColor: string | undefined = '#78350f';
-
-	// color of the moving icon part (visible when audio is loud)
-	// if not set, it will default to color
 	export let accentColor: string | undefined = undefined;
-
-	let isLoaded = false;
-
-	const emptyResult = { values: new Float32Array([0]) };
-
-	let volume = 0.0;
-
-	const render = () => {
-		if (!isLoaded) return;
-
-		let result = emptyResult;
-
-		if (
-			(audioInput instanceof WavRecorder && audioInput.recording) ||
-			(audioInput instanceof WavStreamPlayer && audioInput.analyser) ||
-			(audioInput instanceof AudioFilePlayer && audioInput.analyser)
-		) {
-			result = audioInput.getFrequencies(analysisType);
-		} else if (typeof audioInput === 'function') {
-			result = audioInput();
-		}
-
-		const points = normalizeArray(result.values, 1, true);
-		volume = points[0];
-
-		window.requestAnimationFrame(render);
-	};
-
-	onMount(() => {
-		isLoaded = true;
-
-		render();
-	});
-
-	onDestroy(() => {
-		isLoaded = false;
-	});
 
 	export let icon: 'microphone' | 'speaker' = 'microphone';
 </script>
@@ -75,7 +20,7 @@
 			<rect x="0" y="0" width="24" height="24" fill="white" />
 
 			<!-- Everything under a black pixel will be invisible -->
-			<rect x="0" y="0" width="24" height={(1 - volume) * 24} fill="black" />
+			<rect x="0" y="0" width="24" height={(1 - value) * 24} fill="black" />
 		</mask>
 		<path
 			d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z"
@@ -106,7 +51,7 @@
 			<rect x="0" y="0" width="24" height="24" fill="white" />
 
 			<!-- Everything under a black pixel will be invisible -->
-			<rect x={12 + volume * 12} y="0" width={12} height={24} fill="black" />
+			<rect x={12 + value * 12} y="0" width={12} height={24} fill="black" />
 		</mask>
 
 		<path

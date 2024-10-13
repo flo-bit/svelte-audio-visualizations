@@ -1,48 +1,30 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
-	import { WavRecorder, WavStreamPlayer, AudioFilePlayer } from './wavtools';
-	import { normalizeArray } from './wav_helper';
-
-	// props that can be passed to the component
-	export let audioInput:
-		| WavRecorder
-		| WavStreamPlayer
-		| AudioFilePlayer
-		| null
-		| (() => { values: Float32Array }) = null;
-
-	export let analysisType: 'voice' | 'frequency' | 'music' | undefined = 'voice';
-
+	export let values:Float32Array;
+	
 	export let color: string | undefined = undefined;
-
 	export let startHue: number | undefined = undefined;
 	export let endHue: number | undefined = undefined;
-
 	export let colorTopLeft: string | undefined = undefined; //= '#7c3aed';
 	export let colorTopRight: string | undefined = undefined; //= '#db2777';
 	export let colorBottomLeft: string | undefined = undefined; // = '#2563eb';
 	export let colorBottomRight: string | undefined = undefined; //= '#dc2626';
-
-	// number of points to draw per side (each side has the same number of points)
-	export let detail = 8;
-
-	// how much of the shape is visible if audio is silent (in pixels)
 	export let sideVisible = 5;
-	// how much the shape moves inwards when audio is loud (in pixels)
 	export let deformation = 10;
+	export let glow = 10;
 
 	let canvas: HTMLCanvasElement;
-	let clientCtx: CanvasRenderingContext2D | null = null;
-	let isLoaded = false;
+	let clientWidth:number;
+	let clientHeight:number;
 
-	const emptyResult = { values: new Float32Array([0]) };
+	$:if(canvas){
+		const ctx = canvas.getContext('2d')!;
 
-	const drawDeformedCircle = (
-		canvas: HTMLCanvasElement,
-		ctx: CanvasRenderingContext2D,
-		data: Float32Array
-	) => {
-		const points = normalizeArray(data, detail * 4 + 1, true);
+		//Update canvas size
+		canvas.width = clientWidth;
+		canvas.height = clientHeight;
+
+		//Clear
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 		if (color) ctx.fillStyle = color;
 
@@ -76,13 +58,14 @@
 		ctx.lineTo(-outerSize, canvas.height);
 		ctx.lineTo(-outerSize, 0);
 		ctx.lineTo(0, 0);
-		for (let i = 0; i <= detail; i++) {
-			const amplitude = points[i];
+		for (let i = 0; i < values.length; i++) {
+			const amplitude = values[i];
 
-			ctx.lineTo(amplitude * deformation + sideVisible, (i / detail) * canvas.height);
+			ctx.lineTo(amplitude * deformation + sideVisible, (i / values.length) * canvas.height);
 		}
 		ctx.fill();
 
+		
 		// bottom side
 		if (color) ctx.fillStyle = color;
 		else if (colorBottomLeft && colorBottomRight) {
@@ -96,13 +79,9 @@
 		ctx.lineTo(canvas.width, canvas.height + outerSize);
 		ctx.lineTo(0, canvas.height + outerSize);
 		ctx.lineTo(0, canvas.height);
-		for (let i = detail; i <= detail * 2; i++) {
-			const amplitude = points[i];
-
-			ctx.lineTo(
-				(i / detail - 1) * canvas.width,
-				canvas.height - (amplitude * deformation + sideVisible)
-			);
+		for (let i = 0; i < values.length; i++) {
+			const amplitude = values[i];
+			ctx.lineTo(canvas.width * (i / values.length), canvas.height - (amplitude * deformation + sideVisible));
 		}
 		ctx.fill();
 
@@ -119,12 +98,12 @@
 		ctx.lineTo(canvas.width + outerSize, 0);
 		ctx.lineTo(canvas.width + outerSize, canvas.height);
 		ctx.lineTo(canvas.width, canvas.height);
-		for (let i = detail * 2; i <= detail * 3; i++) {
-			const amplitude = points[i];
+		for (let i = 0; i < values.length; i++) {
+			const amplitude = values[i];
 
 			ctx.lineTo(
 				canvas.width - (amplitude * deformation + sideVisible),
-				(3 - i / detail) * canvas.height
+				(1 - i / values.length) * canvas.height
 			);
 		}
 		ctx.fill();
@@ -142,72 +121,17 @@
 		ctx.lineTo(0, -outerSize);
 		ctx.lineTo(canvas.width, -outerSize);
 		ctx.lineTo(canvas.width, 0);
-		for (let i = detail * 3; i <= detail * 4; i++) {
-			const amplitude = points[i];
-
-			ctx.lineTo(canvas.width * (4 - i / detail), amplitude * deformation + sideVisible);
+		for (let i = 0; i < values.length; i++) {
+			const amplitude = values[i];
+			ctx.lineTo(canvas.width * (1 - i / values.length), amplitude * deformation + sideVisible);
 		}
 		ctx.fill();
+		
 	};
 
-	const render = () => {
-		if (!isLoaded) return;
-
-		if (!canvas) {
-			window.requestAnimationFrame(render);
-			return;
-		}
-
-		clientCtx = clientCtx ?? canvas.getContext('2d');
-		if (!clientCtx) {
-			window.requestAnimationFrame(render);
-			return;
-		}
-		clientCtx.clearRect(0, 0, canvas.width, canvas.height);
-
-		let result = emptyResult;
-
-		if (
-			(audioInput instanceof WavRecorder && audioInput.recording) ||
-			(audioInput instanceof WavStreamPlayer && audioInput.analyser) ||
-			(audioInput instanceof AudioFilePlayer && audioInput.analyser)
-		) {
-			result = audioInput.getFrequencies(analysisType);
-		} else if (typeof audioInput === 'function') {
-			result = audioInput();
-		}
-
-		drawDeformedCircle(canvas, clientCtx, result.values);
-
-		window.requestAnimationFrame(render);
-	};
-
-	onMount(() => {
-		isLoaded = true;
-
-		// resize canvas to fit parent
-		if (canvas) {
-			canvas.width = canvas.offsetWidth * 2;
-			canvas.height = canvas.offsetHeight * 2;
-		}
-		window.addEventListener('resize', () => {
-			if (canvas) {
-				canvas.width = canvas.offsetWidth * 2;
-				canvas.height = canvas.offsetHeight * 2;
-			}
-		});
-
-		render();
-	});
-
-	onDestroy(() => {
-		isLoaded = false;
-	});
-
-	export let glow = 10;
 </script>
 
-<div style="height: 100%; width: 100%; filter: blur(12px)">
+<div bind:clientWidth bind:clientHeight style="height: 100%; width: 100%; filter: blur(12px)">
 	<canvas bind:this={canvas} class="filter-blur-inner-glow" style="height: 100%; width: 100%;"
 	></canvas>
 </div>
