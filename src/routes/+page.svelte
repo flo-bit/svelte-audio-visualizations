@@ -52,7 +52,7 @@
 </script>
 
 <div class="mx-auto px-4 max-w-4xl w-full py-24">
-	<div>
+	<div class="flex justify-between items-center">
 		<div>
 			<button
 				type="button"
@@ -72,6 +72,9 @@
 					: 'text-amber-500 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20'}"
 				>{state === 'music' ? 'stop ' : 'start '}music</button
 			>
+		</div>
+		<div class="text-stone-500 text-sm font-semibold">
+			made by <a href="https://flo-bit.dev/" class="text-amber-600">flo-bit</a>
 		</div>
 	</div>
 
