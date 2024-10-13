@@ -3,46 +3,44 @@
 	import CircleBarVisualizer from '$lib/visualizations/CircleBarVisualizer.svelte';
 	import CircleCirclesVisualizer from '$lib/visualizations/CircleCirclesVisualizer.svelte';
 	import DeformedCircleVisualizer from '$lib/visualizations/DeformedCircleVisualizer.svelte';
-	import IconVisualizer from '$lib/visualizations/IconVisualizer.svelte';
+	import Glow from '$lib/visualizations/Glow.svelte';
 	import InnerGlowVisualizer from '$lib/visualizations/InnerGlowVisualizer.svelte';
+	import MicrophoneVisualizer from '$lib/visualizations/MicrophoneVisualizer.svelte';
 	import { raf } from '$lib/visualizations/raf';
+	import SpeakerVisualizer from '$lib/visualizations/SpeakerVisualizer.svelte';
 	import { normalizeArray } from '$lib/visualizations/wav_helper';
 	import { WavRecorder, AudioFilePlayer } from '$lib/visualizations/wavtools';
 
-	let wavRecorder: WavRecorder | null = null;
-	let player: AudioFilePlayer | null = null;
+	let audio: WavRecorder | AudioFilePlayer | null = null;
 	let state: 'recording' | 'music' | null = null;
+	let values:Float32Array = new Float32Array([0]);
 
 	//Stop playing music, if wrong state
-	$:if(state !== 'music' && wavRecorder){
-		wavRecorder.end();
-		wavRecorder = null;
+	$:if(state !== 'music' && audio instanceof WavRecorder){
+		audio.end();
+		audio = null;
 	}
 
 	//Stop recording, if wrong state
-	$:if(state !== 'recording' && player){
-		player.stop();
-		player = null;
+	$:if(state !== 'recording' && audio instanceof AudioFilePlayer){
+		audio.stop();
+		audio = null;
 	}
 
 	//Start playing music, if not playing already
-	$:if(state == 'music' && !player){
-		player = new AudioFilePlayer();
-		player.loadFile('/svelte-audio-visualizations/music.mp3').then(()=>player?.play());
+	$:if(state == 'music' && !audio){
+		let player = audio = new AudioFilePlayer();
+		audio.loadFile('/svelte-audio-visualizations/music.mp3').then(()=>player.play());
 	}
 
 	//Start recording, if not recording already
-	$:if(state == 'recording' && !wavRecorder){
-		wavRecorder = new WavRecorder({ sampleRate: 24000 })
-		wavRecorder.begin().then(()=>wavRecorder?.record());
+	$:if(state == 'recording' && !audio){
+		let recorder = audio = new WavRecorder({ sampleRate: 24000 });
+		audio.begin().then(()=>recorder.record());
 	}
 
-	//Update values every render frame
-	let values:Float32Array = new Float32Array([0]);
-	raf(()=>{
-		let v = wavRecorder || player || null;
-		values = v ? v.getFrequencies('music').values : new Float32Array([0]);
-	});
+	//Update frequency values every render frame
+	raf(() => values = audio ? audio.getFrequencies('music').values : new Float32Array([0]));
 
 </script>
 
@@ -72,48 +70,58 @@
 
 	<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<CircleBarVisualizer
-				values={normalizeArray(values, 50)}
-				startHue={0}
-				endHue={50}
-				rotate={2}
-			/>
+			<Glow>
+				<CircleBarVisualizer
+					values={normalizeArray(values, 50)}
+					startHue={0}
+					endHue={50}
+					rotate={2}
+				/>
+			</Glow>
 		</div>
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<BarVisualizer
-				values={normalizeArray(values, 16)}
-				barSpacing={8}
-				startHue={0}
-				endHue={50}
-				center
-			/>
+			<Glow>
+				<BarVisualizer
+					values={normalizeArray(values, 16)}
+					barSpacing={8}
+					startHue={0}
+					endHue={50}
+					center
+				/>
+			</Glow>
 		</div>
 
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<CircleCirclesVisualizer
-				values={normalizeArray(values, 50)}
-				startHue={0}
-				endHue={50}
-			/>
+			<Glow>
+				<CircleCirclesVisualizer
+					values={normalizeArray(values, 50)}
+					startHue={0}
+					endHue={50}
+				/>
+			</Glow>
 		</div>
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<DeformedCircleVisualizer
-				values={normalizeArray(values, 16)}
-				startHue={0}
-				endHue={50}
-			/>
+			<Glow glow={20}>
+				<DeformedCircleVisualizer
+					values={normalizeArray(values, 16)}
+					startHue={0}
+					endHue={50}
+				/>
+			</Glow>
 		</div>
 		<div class="h-64 w-full rounded-xl border border-white/15 overflow-hidden">
-			<InnerGlowVisualizer values={normalizeArray(values, 8)} startHue={0} endHue={50} />
+			<Glow glow={10}>
+				<InnerGlowVisualizer values={normalizeArray(values, 8)} startHue={0} endHue={50} />
+			</Glow>
 		</div>
 		<div
 			class="h-64 w-full rounded-xl border border-white/15 overflow-hidden flex items-center justify-center gap-4"
 		>
 			<div class="size-20">
-				<IconVisualizer value={normalizeArray(values, 1)[0]} />
+				<MicrophoneVisualizer value={normalizeArray(values, 1)[0]} />
 			</div>
 			<div class="size-20">
-				<IconVisualizer value={normalizeArray(values, 1)[0]} icon="speaker" />
+				<SpeakerVisualizer value={normalizeArray(values, 1)[0]} />
 			</div>
 		</div>
 	</div>

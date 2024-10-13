@@ -8,18 +8,16 @@
 	export let maxRadius: number = 0.5;
 	export let rotate = 1;
 	export let varyBrightness = false;
-	export let glow = 3;
 
 	let canvas: HTMLCanvasElement;
-	let clientWidth:number;
-	let clientHeight:number;
+	let contentRect:DOMRectReadOnly;
 
-	$:if(canvas){
+	$:if(canvas && contentRect){
 		const ctx = canvas.getContext('2d')!;
 
 		//Update canvas size
-		canvas.width = clientWidth;
-		canvas.height = clientHeight;
+		canvas.width = Math.round(contentRect.width);
+		canvas.height = Math.round(contentRect.height);
 
 		//Clear
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -75,22 +73,4 @@
 
 </script>
 
-<div bind:clientWidth bind:clientHeight class="w-full h-full">
-	<canvas bind:this={canvas} class="filter-blur-circle-circles" style="width: 100%; height: 100%"></canvas>
-</div>
-
-{#if glow}
-	<svg width="0" height="0">
-		<filter id="blur-and-scale-circle-circles" y="-50%" x="-50%" width="200%" height="200%">
-			<feGaussianBlur in="SourceGraphic" stdDeviation={glow} result="blurred" />
-			<feColorMatrix type="saturate" in="blurred" values="5" />
-			<feComposite in="SourceGraphic" operator="over" />
-		</filter>
-	</svg>
-
-	<style>
-		.filter-blur-circle-circles {
-			filter: url(#blur-and-scale-circle-circles);
-		}
-	</style>
-{/if}
+<canvas bind:this={canvas} bind:contentRect class="w-full h-full"></canvas>

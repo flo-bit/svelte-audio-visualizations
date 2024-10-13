@@ -10,18 +10,16 @@
 	export let colorBottomRight: string | undefined = undefined; //= '#dc2626';
 	export let sideVisible = 5;
 	export let deformation = 10;
-	export let glow = 10;
 
 	let canvas: HTMLCanvasElement;
-	let clientWidth:number;
-	let clientHeight:number;
+	let contentRect:DOMRectReadOnly;
 
-	$:if(canvas){
+	$:if(canvas && contentRect){
 		const ctx = canvas.getContext('2d')!;
 
 		//Update canvas size
-		canvas.width = clientWidth;
-		canvas.height = clientHeight;
+		canvas.width = Math.round(contentRect.width);
+		canvas.height = Math.round(contentRect.height);
 
 		//Clear
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -126,28 +124,8 @@
 			ctx.lineTo(canvas.width * (1 - i / values.length), amplitude * deformation + sideVisible);
 		}
 		ctx.fill();
-		
 	};
-
 </script>
 
-<div bind:clientWidth bind:clientHeight style="height: 100%; width: 100%; filter: blur(12px)">
-	<canvas bind:this={canvas} class="filter-blur-inner-glow" style="height: 100%; width: 100%;"
-	></canvas>
-</div>
-
-{#if glow}
-	<svg width="0" height="0">
-		<filter id="blur-and-scale-inner-glow" y="-50%" x="-50%" width="200%" height="200%">
-			<feGaussianBlur in="SourceGraphic" stdDeviation={glow} result="blurred" />
-			<feColorMatrix type="saturate" in="blurred" values="20" />
-			<feComposite in="SourceGraphic" operator="over" />
-		</filter>
-	</svg>
-
-	<style>
-		.filter-blur-inner-glow {
-			filter: url(#blur-and-scale-inner-glow);
-		}
-	</style>
-{/if}
+<canvas bind:this={canvas} bind:contentRect style="filter: blur(12px)" class="w-full h-full"
+></canvas>
