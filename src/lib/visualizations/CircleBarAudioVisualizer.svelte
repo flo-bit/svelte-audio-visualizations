@@ -1,6 +1,6 @@
 <script lang="ts">
-	import AudioFrequency from './AudioFrequency.svelte';
 	import type { WavRecorder, AudioFilePlayer } from '$lib/visualizations/wavtools';
+	import AudioFrequency from './AudioFrequency.svelte';
 	import Glow from './Glow.svelte';
 	import CircleBarVisualizer from './CircleBarVisualizer.svelte';
 

@@ -9,7 +9,7 @@
 	import Glow from '$lib/visualizations/Glow.svelte';
 	import AudioFrequency from '$lib/visualizations/AudioFrequency.svelte';
 	import { WavRecorder, AudioFilePlayer } from '$lib/visualizations/wavtools';
-	import BarAudioVisualizer from '$lib/visualizations/BarAudioVisualizer.svelte';
+	import CircleBarAudioVisualizer from '$lib/visualizations/CircleBarAudioVisualizer.svelte';
 
 	let audio: WavRecorder | AudioFilePlayer | null = null;
 	let state: 'recording' | 'music' | null = null;
@@ -42,7 +42,7 @@
 
 <!-- Example of creating a higher order component, that combines -->
 <div style="width:300px;height:300px;">
-	<BarAudioVisualizer
+	<CircleBarAudioVisualizer
 		{audio}
 		startHue={0}
 		endHue={50}
