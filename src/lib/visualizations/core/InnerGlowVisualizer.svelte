@@ -1,6 +1,6 @@
 <script lang="ts">
-	export let values:Float32Array;
-	
+	export let values: Float32Array;
+
 	export let color: string | undefined = undefined;
 	export let startHue: number | undefined = undefined;
 	export let endHue: number | undefined = undefined;
@@ -12,14 +12,14 @@
 	export let deformation = 10;
 
 	let canvas: HTMLCanvasElement;
-	let contentRect:DOMRectReadOnly;
+	let contentRect: DOMRectReadOnly;
 
-	$:if(canvas && contentRect){
+	$: if (canvas && contentRect) {
 		const ctx = canvas.getContext('2d')!;
 
 		//Update canvas size
-		canvas.width = Math.round(contentRect.width);
-		canvas.height = Math.round(contentRect.height);
+		canvas.width = Math.round(contentRect.width) * 2;
+		canvas.height = Math.round(contentRect.height) * 2;
 
 		//Clear
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -63,7 +63,6 @@
 		}
 		ctx.fill();
 
-		
 		// bottom side
 		if (color) ctx.fillStyle = color;
 		else if (colorBottomLeft && colorBottomRight) {
@@ -79,7 +78,10 @@
 		ctx.lineTo(0, canvas.height);
 		for (let i = 0; i < values.length; i++) {
 			const amplitude = values[i];
-			ctx.lineTo(canvas.width * (i / values.length), canvas.height - (amplitude * deformation + sideVisible));
+			ctx.lineTo(
+				canvas.width * (i / values.length),
+				canvas.height - (amplitude * deformation + sideVisible)
+			);
 		}
 		ctx.fill();
 
@@ -124,7 +126,7 @@
 			ctx.lineTo(canvas.width * (1 - i / values.length), amplitude * deformation + sideVisible);
 		}
 		ctx.fill();
-	};
+	}
 </script>
 
 <canvas bind:this={canvas} bind:contentRect style="filter: blur(12px)" class="w-full h-full"

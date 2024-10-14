@@ -10,11 +10,49 @@ copy the `lib/visualizations` folder into your project.
 
 ## Usage
 
-All visualizations expect some props to be passed to them.
+There are two ways you can use the visualizations:
 
-The one required prop is `audioInput`, which can be either of type `WavRecorder`, `WavStreamPlayer` or `AudioFilePlayer` or a function that returns a normalized (between 0-1) Float32Array of the current frequency data. for other props, see the individual visualizations.
+1. Using with a `WavRecorder`, `WavStreamPlayer` or `AudioFilePlayer` instance. For this use the components in the `lib/visualizations/audio` folder ending with `AudioVisualizer`.
 
-see the `src/routes/+page.svelte` file for an example of how to use the visualizations.
+```svelte
+<script lang="ts">
+	import { AudioFilePlayer } from '$lib/visualizations/wavtools';
+
+    let audio: AudioFilePlayer | null = null;
+
+    function playMusic() {
+		audio = new AudioFilePlayer();
+		audio.loadFile('/svelte-audio-visualizations/music.mp3').then(() => audio.play());
+    }
+</script>
+
+<button on:click={playMusic}>Play music</button>
+
+{#if audio}
+    <CircleBarAudioVisualizer {audio} />
+{/if}
+```
+
+2. Passing in values yourself. For this use the components in the `lib/visualizations/core` folder. Ending just in `Visualizer`.
+
+```svelte
+<script lang="ts">
+	import DeformedCircleVisualizer from '$lib/visualizations/core/DeformedCircleVisualizer.svelte';
+</script>
+
+<CircleBarVisualizer values={new Float32Array([0, 1, 0, 1, 0, 1])} />
+```
+
+For this a normalized Float32Array is expected, where each value is between 0 and 1. Also note, that the length of the array influences the visualizations (e.g. number of bars in the `BarVisualizer`). To convert from any length array, to a specific length, you can use the `normalizeArray` function.
+
+```ts
+import { normalizeArray } from '$lib/visualizations/core/utils';
+
+const values = new Float32Array([0, 1, 0, 1, 0, 1]);
+
+const normalizedValues = normalizeArray(values, 10);
+```
+
 
 ## Credits
 

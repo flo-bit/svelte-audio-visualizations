@@ -1,5 +1,5 @@
 <script lang="ts">
-	export let values:Float32Array;
+	export let values: Float32Array;
 
 	export let color: string | undefined = undefined;
 	export let startHue: number | undefined = undefined;
@@ -9,14 +9,14 @@
 	export let center = false;
 
 	let canvas: HTMLCanvasElement;
-	let contentRect:DOMRectReadOnly;
+	let contentRect: DOMRectReadOnly;
 
-	$:if(canvas && contentRect){
+	$: if (canvas && contentRect) {
 		const ctx = canvas.getContext('2d')!;
 
 		//Update canvas size
-		canvas.width = Math.round(contentRect.width);
-		canvas.height = Math.round(contentRect.height);
+		canvas.width = Math.round(contentRect.width) * 2;
+		canvas.height = Math.round(contentRect.height) * 2;
 
 		//Clear
 		ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -47,9 +47,7 @@
 			}
 			ctx.fillRect(x, y, width, height);
 		}
-	};
-
+	}
 </script>
 
 <canvas bind:this={canvas} bind:contentRect class="w-full h-full"></canvas>
-
