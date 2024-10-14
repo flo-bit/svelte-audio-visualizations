@@ -1,62 +1,50 @@
 <script lang="ts">
-	import BarVisualizer from '$lib/visualizations/BarVisualizer.svelte';
-	import CircleBarVisualizer from '$lib/visualizations/CircleBarVisualizer.svelte';
-	import CircleCirclesVisualizer from '$lib/visualizations/CircleCirclesVisualizer.svelte';
-	import DeformedCircleVisualizer from '$lib/visualizations/DeformedCircleVisualizer.svelte';
-	import IconVisualizer from '$lib/visualizations/IconVisualizer.svelte';
-	import InnerGlowVisualizer from '$lib/visualizations/InnerGlowVisualizer.svelte';
+	import DeformedCircleVisualizer from '$lib/visualizations/core/DeformedCircleVisualizer.svelte';
+	import InnerGlowVisualizer from '$lib/visualizations/core/InnerGlowVisualizer.svelte';
+	import MicrophoneVisualizer from '$lib/visualizations/core/MicrophoneVisualizer.svelte';
+	import SpeakerVisualizer from '$lib/visualizations/core/SpeakerVisualizer.svelte';
+	import Glow from '$lib/visualizations/core/Glow.svelte';
+	import AudioFrequency from '$lib/visualizations/audio/AudioFrequency.svelte';
 	import { WavRecorder, AudioFilePlayer } from '$lib/visualizations/wavtools';
 
-	export let wavRecorder: WavRecorder = new WavRecorder({ sampleRate: 24000 });
+	import CircleBarAudioVisualizer from '$lib/visualizations/audio/CircleBarAudioVisualizer.svelte';
+	import BarAudioVisualizer from '$lib/visualizations/audio/BarAudioVisualizer.svelte';
+	import CircleCirclesAudioVisualizer from '$lib/visualizations/audio/CircleCirclesAudioVisualizer.svelte';
 
-	export let player = new AudioFilePlayer();
-
-	export let currentlyPlaying: WavRecorder | AudioFilePlayer | null = null;
-
+	let audio: WavRecorder | AudioFilePlayer | null = null;
 	let state: 'recording' | 'music' | null = null;
 
-	let analysisType: 'voice' | 'frequency' | 'music' | undefined = 'music';
-
-	async function microphone() {
-		if (state === 'recording') {
-			wavRecorder.end();
-			state = null;
-			return;
-		}
-		player.stop();
-
-		await wavRecorder.begin();
-
-		wavRecorder.record();
-
-		currentlyPlaying = wavRecorder;
-
-		state = 'recording';
+	//Stop playing music, if wrong state
+	$: if (state !== 'music' && audio instanceof WavRecorder) {
+		audio.end();
+		audio = null;
 	}
 
-	async function music() {
-		if (state === 'music') {
-			player.stop();
-			state = null;
-			return;
-		}
-		if (wavRecorder.recording) wavRecorder.end();
+	//Stop recording, if wrong state
+	$: if (state !== 'recording' && audio instanceof AudioFilePlayer) {
+		audio.stop();
+		audio = null;
+	}
 
-		await player.loadFile('/svelte-audio-visualizations/music.mp3');
+	//Start playing music, if not playing already
+	$: if (state == 'music' && !audio) {
+		let player = (audio = new AudioFilePlayer());
+		audio.loadFile('/svelte-audio-visualizations/music.mp3').then(() => player.play());
+	}
 
-		player.play();
-		currentlyPlaying = player;
-
-		state = 'music';
+	//Start recording, if not recording already
+	$: if (state == 'recording' && !audio) {
+		let recorder = (audio = new WavRecorder({ sampleRate: 24000 }));
+		audio.begin().then(() => recorder.record());
 	}
 </script>
 
-<div class="mx-auto px-4 max-w-4xl w-full py-24">
-	<div class="flex justify-between items-center">
-		<div>
+<div class="mx-auto px-4 max-w-4xl w-full py-8 sm:py-24">
+	<div class="flex justify-between">
+		<div class="flex gap-2 flex-col sm:flex-row">
 			<button
 				type="button"
-				on:click={microphone}
+				on:click={() => (state = state == 'recording' ? null : 'recording')}
 				class="rounded-full px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 {state ===
 				'recording'
 					? 'text-stone-500 bg-stone-500/10 border border-stone-500/20 hover:bg-stone-500/20'
@@ -65,7 +53,7 @@
 			>
 			<button
 				type="button"
-				on:click={music}
+				on:click={() => (state = state == 'music' ? null : 'music')}
 				class="rounded-full px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 {state ===
 				'music'
 					? 'text-stone-500 bg-stone-500/10 border border-stone-500/20 hover:bg-stone-500/20'
@@ -80,53 +68,37 @@
 
 	<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<CircleBarVisualizer
-				audioInput={currentlyPlaying}
-				{analysisType}
-				startHue={0}
-				endHue={50}
-				rotate={2}
-			/>
+			<CircleBarAudioVisualizer {audio} startHue={0} endHue={50} rotate={2} />
 		</div>
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<BarVisualizer
-				audioInput={currentlyPlaying}
-				{analysisType}
-				barSpacing={8}
-				startHue={0}
-				endHue={50}
-				center
-			/>
+			<BarAudioVisualizer {audio} barSpacing={8} startHue={0} endHue={50} center />
 		</div>
 
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<CircleCirclesVisualizer
-				audioInput={currentlyPlaying}
-				{analysisType}
-				startHue={0}
-				endHue={50}
-			/>
+			<CircleCirclesAudioVisualizer {audio} startHue={0} endHue={50} />
 		</div>
-		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<DeformedCircleVisualizer
-				audioInput={currentlyPlaying}
-				{analysisType}
-				startHue={0}
-				endHue={50}
-			/>
-		</div>
-		<div class="h-64 w-full rounded-xl border border-white/15 overflow-hidden">
-			<InnerGlowVisualizer audioInput={currentlyPlaying} {analysisType} startHue={0} endHue={50} />
-		</div>
-		<div
-			class="h-64 w-full rounded-xl border border-white/15 overflow-hidden flex items-center justify-center gap-4"
-		>
-			<div class="size-20">
-				<IconVisualizer audioInput={currentlyPlaying} {analysisType} />
+
+		<AudioFrequency {audio} let:getValues>
+			<div class="h-64 w-full rounded-xl border border-white/15 p-4">
+				<Glow glow={20}>
+					<DeformedCircleVisualizer values={getValues(16)} startHue={0} endHue={50} />
+				</Glow>
 			</div>
-			<div class="size-20">
-				<IconVisualizer audioInput={currentlyPlaying} {analysisType} icon="speaker" />
+			<div class="h-64 w-full rounded-xl border border-white/15 overflow-hidden">
+				<Glow glow={10}>
+					<InnerGlowVisualizer values={getValues(32)} startHue={0} endHue={50} />
+				</Glow>
 			</div>
-		</div>
+			<div
+				class="h-64 w-full rounded-xl border border-white/15 overflow-hidden flex items-center justify-center gap-4"
+			>
+				<div class="size-20">
+					<MicrophoneVisualizer value={getValues(1)[0]} />
+				</div>
+				<div class="size-20">
+					<SpeakerVisualizer value={getValues(1)[0]} />
+				</div>
+			</div>
+		</AudioFrequency>
 	</div>
 </div>

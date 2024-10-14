@@ -1,5 +1,22 @@
 const dataMap = new WeakMap();
 
+import { onMount } from 'svelte';
+
+export async function raf(callback: () => void) {
+	let mounted = true;
+
+	async function render() {
+		if (!mounted) return;
+		callback();
+		requestAnimationFrame(render);
+	}
+
+	onMount(() => {
+		render();
+		return () => (mounted = false);
+	});
+}
+
 /**
  * Normalizes a Float32Array to Array(m): We use this to draw amplitudes on a graph
  * If we're rendering the same audio data, then we'll often be using
