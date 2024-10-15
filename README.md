@@ -17,6 +17,7 @@ There are two ways you can use the visualizations:
 ```svelte
 <script lang="ts">
 	import { AudioFilePlayer } from '$lib/visualizations/wavtools';
+    import CircleBarAudioVisualizer from '$lib/visualizations/audio/CircleBarAudioVisualizer.svelte';
 
     let audio: AudioFilePlayer | null = null;
 
