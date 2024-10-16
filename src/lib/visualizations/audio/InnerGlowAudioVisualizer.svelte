@@ -7,9 +7,10 @@
 	export let audio: AudioFilePlayer | WavRecorder | WavStreamPlayer | null;
 	export let glow: number | undefined = 10;
 	export let detail: number | undefined = 50;
+	export let analysisType: 'music' | 'voice' | 'frequency' = 'frequency';
 </script>
 
-<AudioFrequency {audio} let:getValues>
+<AudioFrequency {audio} {analysisType} let:getValues>
 	<Glow {glow}>
 		<InnerGlowVisualizer values={getValues(detail || 50)} {...$$restProps} />
 	</Glow>
