@@ -7,6 +7,8 @@
 	export let minRadius: number = 0.1;
 	export let maxRadius: number = 0.4;
 
+	export let blur: number = 24;
+
 	let canvas: HTMLCanvasElement;
 	let contentRect: DOMRectReadOnly;
 
@@ -63,5 +65,4 @@
 	}
 </script>
 
-<canvas bind:this={canvas} bind:contentRect style="filter: blur(24px);" class="w-full h-full"
-></canvas>
+<canvas bind:this={canvas} bind:contentRect style="filter: blur({blur}px); height: 100%; width: 100%;"></canvas>

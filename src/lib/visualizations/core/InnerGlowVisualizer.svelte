@@ -11,6 +11,8 @@
 	export let sideVisible = 5;
 	export let deformation = 10;
 
+	export let blur: number = 12;
+
 	let canvas: HTMLCanvasElement;
 	let contentRect: DOMRectReadOnly;
 
@@ -129,5 +131,4 @@
 	}
 </script>
 
-<canvas bind:this={canvas} bind:contentRect style="filter: blur(12px)" class="w-full h-full"
-></canvas>
+<canvas bind:this={canvas} bind:contentRect style="filter: blur({blur}px); width: 100%; height: 100%;"></canvas>

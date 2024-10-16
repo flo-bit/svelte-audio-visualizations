@@ -6,7 +6,7 @@
 	export let accentColor: string | undefined = color;
 </script>
 
-<svg width="24" height="24" viewBox="0 0 24 24" class="w-full h-full">
+<svg width="24" height="24" viewBox="0 0 24 24" style="height: 100%; width: 100%;">
 	<mask id="speaker-mask-horizontal">
 		<rect x="0" y="0" width="24" height="24" fill="white" />
 		<rect x={12 + value * 12} y="0" width={12} height={24} fill="black" />

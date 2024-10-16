@@ -72,4 +72,4 @@
 	}
 </script>
 
-<canvas bind:this={canvas} bind:contentRect class="w-full h-full"></canvas>
+<canvas bind:this={canvas} bind:contentRect style="height: 100%; width: 100%;"></canvas>

@@ -9,6 +9,6 @@
 		<feComposite in="SourceGraphic" operator="over" />
 	</filter>
 </svg>
-<div class="w-full h-full" style="filter: url(#blur);">
+<div style="filter: url(#blur); height: 100%; width: 100%;">
 	<slot />
 </div>
