@@ -6,11 +6,12 @@
 
 	export let audio: AudioFilePlayer | WavRecorder | WavStreamPlayer | null;
 	export let glow: number | undefined = 3;
-	export let detail: number | undefined = 50;
+	export let detail: number | undefined = 20;
+	export let analysisType: 'music' | 'voice' | 'frequency' = 'frequency';
 </script>
 
-<AudioFrequency {audio} let:getValues>
+<AudioFrequency {audio} {analysisType} let:getValues>
 	<Glow {glow}>
-		<BarVisualizer values={getValues(detail || 50)} {...$$restProps} />
+		<BarVisualizer values={getValues(detail || 20)} {...$$restProps} />
 	</Glow>
 </AudioFrequency>

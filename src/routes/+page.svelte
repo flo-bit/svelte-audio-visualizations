@@ -11,31 +11,50 @@
 	import BarAudioVisualizer from '$lib/visualizations/audio/BarAudioVisualizer.svelte';
 	import CircleCirclesAudioVisualizer from '$lib/visualizations/audio/CircleCirclesAudioVisualizer.svelte';
 
-	let audio: WavRecorder | AudioFilePlayer | null = null;
+	
+	export let wavRecorder: WavRecorder = new WavRecorder({ sampleRate: 24000 });
+
+	export let player = new AudioFilePlayer();
+
+	export let currentlyPlaying: WavRecorder | AudioFilePlayer | null = null;
+
 	let state: 'recording' | 'music' | null = null;
 
-	//Stop playing music, if wrong state
-	$: if (state !== 'music' && audio instanceof WavRecorder) {
-		audio.end();
-		audio = null;
+	let analysisType: 'music' | 'voice' = 'voice';
+
+	$: analysisType = state === 'music' ? 'music' : 'voice';
+
+	async function microphone() {
+		if (state === 'recording') {
+			wavRecorder.end();
+			state = null;
+			return;
+		}
+		player.stop();
+
+		await wavRecorder.begin();
+
+		wavRecorder.record();
+
+		currentlyPlaying = wavRecorder;
+
+		state = 'recording';
 	}
 
-	//Stop recording, if wrong state
-	$: if (state !== 'recording' && audio instanceof AudioFilePlayer) {
-		audio.stop();
-		audio = null;
-	}
+	async function music() {
+		if (state === 'music') {
+			player.stop();
+			state = null;
+			return;
+		}
+		if (wavRecorder.recording) wavRecorder.end();
 
-	//Start playing music, if not playing already
-	$: if (state == 'music' && !audio) {
-		let player = (audio = new AudioFilePlayer());
-		audio.loadFile('/svelte-audio-visualizations/music.mp3').then(() => player.play());
-	}
+		await player.loadFile('/svelte-audio-visualizations/music.mp3');
 
-	//Start recording, if not recording already
-	$: if (state == 'recording' && !audio) {
-		let recorder = (audio = new WavRecorder({ sampleRate: 24000 }));
-		audio.begin().then(() => recorder.record());
+		player.play();
+		currentlyPlaying = player;
+
+		state = 'music';
 	}
 </script>
 
@@ -44,7 +63,7 @@
 		<div class="flex gap-2 flex-col sm:flex-row">
 			<button
 				type="button"
-				on:click={() => (state = state == 'recording' ? null : 'recording')}
+				on:click={microphone}
 				class="rounded-full px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 {state ===
 				'recording'
 					? 'text-stone-500 bg-stone-500/10 border border-stone-500/20 hover:bg-stone-500/20'
@@ -53,7 +72,7 @@
 			>
 			<button
 				type="button"
-				on:click={() => (state = state == 'music' ? null : 'music')}
+				on:click={music}
 				class="rounded-full px-3 py-2 text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 {state ===
 				'music'
 					? 'text-stone-500 bg-stone-500/10 border border-stone-500/20 hover:bg-stone-500/20'
@@ -68,20 +87,20 @@
 
 	<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<CircleBarAudioVisualizer {audio} startHue={0} endHue={50} rotate={2} />
+			<CircleBarAudioVisualizer audio={currentlyPlaying} startHue={0} endHue={50} rotate={2} {analysisType} />
 		</div>
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<BarAudioVisualizer {audio} barSpacing={8} startHue={0} endHue={50} center />
+			<BarAudioVisualizer audio={currentlyPlaying} barSpacing={8} startHue={0} endHue={50} center {analysisType} />
 		</div>
 
 		<div class="h-64 w-full rounded-xl border border-white/15 p-4">
-			<CircleCirclesAudioVisualizer {audio} startHue={0} endHue={50} />
+			<CircleCirclesAudioVisualizer audio={currentlyPlaying} startHue={0} endHue={50} {analysisType} />
 		</div>
 
-		<AudioFrequency {audio} let:getValues>
+		<AudioFrequency audio={currentlyPlaying} let:getValues {analysisType}>
 			<div class="h-64 w-full rounded-xl border border-white/15 p-4">
 				<Glow glow={20}>
-					<DeformedCircleVisualizer values={getValues(16)} startHue={0} endHue={50} />
+					<DeformedCircleVisualizer values={getValues(8)} startHue={0} endHue={50}  />
 				</Glow>
 			</div>
 			<div class="h-64 w-full rounded-xl border border-white/15 overflow-hidden">
@@ -93,10 +112,10 @@
 				class="h-64 w-full rounded-xl border border-white/15 overflow-hidden flex items-center justify-center gap-4"
 			>
 				<div class="size-20">
-					<MicrophoneVisualizer value={getValues(1)[0]} />
+					<MicrophoneVisualizer value={getValues(3)[1]} />
 				</div>
 				<div class="size-20">
-					<SpeakerVisualizer value={getValues(1)[0]} />
+					<SpeakerVisualizer value={getValues(3)[1]} />
 				</div>
 			</div>
 		</AudioFrequency>

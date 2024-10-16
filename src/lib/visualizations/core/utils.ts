@@ -6,8 +6,13 @@ export async function raf(callback: () => void) {
 	let mounted = true;
 
 	async function render() {
-		if (!mounted) return;
-		callback();
+		if (!mounted || !callback) return;
+
+		try {
+			callback();
+		} catch (e) {
+			console.error(e);
+		}
 		requestAnimationFrame(render);
 	}
 
