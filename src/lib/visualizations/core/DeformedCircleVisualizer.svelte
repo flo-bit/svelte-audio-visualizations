@@ -1,68 +1,79 @@
 <script lang="ts">
-	export let values: Float32Array;
+	import { canvasSurface } from './canvas.svelte';
+	import { amplitude } from './utils';
 
-	export let color: string | undefined = undefined;
-	export let startHue: number | undefined = undefined;
-	export let endHue: number | undefined = undefined;
-	export let minRadius: number = 0.1;
-	export let maxRadius: number = 0.4;
-
-	export let blur: number = 24;
-
-	let canvas: HTMLCanvasElement;
-	let contentRect: DOMRectReadOnly;
-
-	$: if (canvas && contentRect) {
-		const ctx = canvas.getContext('2d')!;
-
-		//Update canvas size
-		canvas.width = Math.round(contentRect.width) * 2;
-		canvas.height = Math.round(contentRect.height) * 2;
-
-		//Clear
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-		const centerX = canvas.width / 2;
-		const centerY = canvas.height / 2;
-		const smaller = Math.min(canvas.width, canvas.height);
-
-		if (color) ctx.fillStyle = color;
-		else if (startHue !== undefined && endHue !== undefined) {
-			// create radial gradient
-			const gradient = ctx.createRadialGradient(
-				centerX,
-				centerY,
-				0,
-				centerX,
-				centerY,
-				maxRadius * smaller
-			);
-			gradient.addColorStop(0, `hsl(${startHue % 360}, 100%, 30%)`);
-			gradient.addColorStop(1, `hsl(${endHue % 360}, 100%, 50%)`);
-			ctx.fillStyle = gradient;
-		}
-
-		ctx.beginPath();
-
-		const deformation = (maxRadius - minRadius) * smaller;
-
-		for (let i = 0; i <= values.length; i++) {
-			const angle = (i / values.length) * Math.PI * 2;
-			const currentAmplitude = values[i % values.length];
-
-			const currentRadius = minRadius * smaller + currentAmplitude * deformation;
-
-			const x1 = centerX + Math.sin(angle) * currentRadius;
-			const y1 = centerY + Math.cos(angle) * currentRadius;
-
-			if (i === 0) {
-				ctx.moveTo(x1, y1);
-			}
-			ctx.lineTo(x1, y1);
-		}
-
-		ctx.fill();
+	interface Props {
+		values: ArrayLike<number>;
+		color?: string;
+		startHue?: number;
+		endHue?: number;
+		/** Radii as fractions of the shorter canvas dimension. */
+		minRadius?: number;
+		maxRadius?: number;
+		/** Blur in CSS pixels. Zero disables it. */
+		blur?: number;
+		maxPixelRatio?: number;
 	}
+	let {
+		values,
+		color = '#f59e0b',
+		startHue,
+		endHue,
+		minRadius = 0.1,
+		maxRadius = 0.4,
+		blur = 24,
+		maxPixelRatio = 2
+	}: Props = $props();
+	let canvas = $state<HTMLCanvasElement>();
+	const surface = canvasSurface(
+		() => canvas,
+		() => maxPixelRatio
+	);
+	let gradient: CanvasGradient | undefined;
+	let gradientKey = '';
+
+	$effect(() =>
+		surface.draw((ctx, width, height) => {
+			if (!values.length) return;
+			const smaller = Math.min(width, height);
+			const low = Math.max(0, minRadius);
+			const high = Math.max(low, maxRadius);
+			ctx.fillStyle = color;
+			if (startHue !== undefined && endHue !== undefined && high > 0) {
+				const key = `${width}:${height}:${ctx.canvas.width}:${ctx.canvas.height}:${high}:${startHue}:${endHue}`;
+				if (!gradient || key !== gradientKey) {
+					gradient = ctx.createRadialGradient(
+						width / 2,
+						height / 2,
+						0,
+						width / 2,
+						height / 2,
+						high * smaller
+					);
+					gradient.addColorStop(0, `hsl(${startHue % 360}, 100%, 30%)`);
+					gradient.addColorStop(1, `hsl(${endHue % 360}, 100%, 50%)`);
+					gradientKey = key;
+				}
+				ctx.fillStyle = gradient;
+			}
+			ctx.beginPath();
+			for (let i = 0; i < values.length; i++) {
+				const angle = (i / values.length) * Math.PI * 2;
+				const radius = (low + amplitude(values[i]) * (high - low)) * smaller;
+				const x = width / 2 + Math.sin(angle) * radius;
+				const y = height / 2 + Math.cos(angle) * radius;
+				if (i === 0) ctx.moveTo(x, y);
+				else ctx.lineTo(x, y);
+			}
+			ctx.closePath();
+			ctx.fill();
+		})
+	);
 </script>
 
-<canvas bind:this={canvas} bind:contentRect style="filter: blur({blur}px); height: 100%; width: 100%;"></canvas>
+<canvas
+	bind:this={canvas}
+	aria-hidden="true"
+	style:filter={blur > 0 ? `blur(${blur}px)` : undefined}
+	style="display: block; height: 100%; width: 100%;"
+></canvas>

@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>Visualization test harness</title>
+	</head>
+	<body>
+		<div id="app"></div>
+		<script type="module">
+			import { mount } from 'svelte';
+			import Harness from './Harness.svelte';
+			mount(Harness, { target: document.getElementById('app') });
+		</script>
+	</body>
+</html>

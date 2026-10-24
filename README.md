@@ -1,63 +1,81 @@
-# svelte audio visualizations
+# Svelte audio visualizations
 
-simple, zero dependency audio visualizations for svelte, especially useful for visualizing voice input and output.
+simple, zero dependency audio visualizations for svelte 5, especially useful for visualizing voice input and output.
 
 https://github.com/user-attachments/assets/056b0226-75e2-438f-82a1-cfbc7aace468
 
 ## Installation
 
-copy the `lib/visualizations` folder into your project.
+Copy `src/lib/visualizations` into your project. Requires Svelte 5.20+; works with SSR.
 
-## Usage
+- `audio/`: visualize an audio/video element, `MediaStream` or `AnalyserNode`.
+- `core/`: render values you supply.
 
-There are two ways you can use the visualizations:
+**Give the parent a width and height.** Components fill the available space.
 
-1. Using with a `WavRecorder`, `WavStreamPlayer` or `AudioFilePlayer` instance. For this use the components in the `lib/visualizations/audio` folder ending with `AudioVisualizer`.
-
-```svelte
-<script lang="ts">
-	import { AudioFilePlayer } from '$lib/visualizations/wavtools';
-    import CircleBarAudioVisualizer from '$lib/visualizations/audio/CircleBarAudioVisualizer.svelte';
-
-    let audio: AudioFilePlayer | null = null;
-
-    function playMusic() {
-		audio = new AudioFilePlayer();
-		audio.loadFile('/svelte-audio-visualizations/music.mp3').then(() => audio.play());
-    }
-</script>
-
-<button on:click={playMusic}>Play music</button>
-
-{#if audio}
-    <CircleBarAudioVisualizer {audio} />
-{/if}
-```
-
-2. Passing in values yourself. For this use the components in the `lib/visualizations/core` folder. Ending just in `Visualizer`.
+## Audio
 
 ```svelte
 <script lang="ts">
-	import DeformedCircleVisualizer from '$lib/visualizations/core/DeformedCircleVisualizer.svelte';
+	import BarAudioVisualizer from '$lib/visualizations/audio/BarAudioVisualizer.svelte';
+	import { resumeAudio } from '$lib/visualizations/audio/source';
+
+	let player = $state<HTMLAudioElement>();
+
+	async function play() {
+		if (!player) return;
+		await resumeAudio(player);
+		await player.play();
+	}
 </script>
 
-<CircleBarVisualizer values={new Float32Array([0, 1, 0, 1, 0, 1])} />
+<audio bind:this={player} src="/music.mp3"></audio>
+<button onclick={play}>Play</button>
+<button onclick={() => player?.pause()}>Pause</button>
+<div style="height: 160px;">
+	<BarAudioVisualizer source={player} bands={32} color="#f59e0b" />
+</div>
 ```
 
-For this a normalized Float32Array is expected, where each value is between 0 and 1. Also note, that the length of the array influences the visualizations (e.g. number of bars in the `BarVisualizer`). To convert from any length array, to a specific length, you can use the `normalizeArray` function.
+For a microphone or WebRTC stream, pass the stream instead:
 
-```ts
-import { normalizeArray } from '$lib/visualizations/core/utils';
-
-const values = new Float32Array([0, 1, 0, 1, 0, 1]);
-
-const normalizedValues = normalizeArray(values, 10);
+```svelte
+<BarAudioVisualizer source={stream} preset="voice" />
 ```
 
+Get microphone audio with `navigator.mediaDevices.getUserMedia({ audio: true })` (HTTPS or localhost required). Stop its tracks when you're done. See [the demo](src/routes/+page.svelte) for an example.
 
-## Credits
+If you already use Web Audio, pass your analyser as `source`. Playback and recording stay under your control.
 
-originally built for [svelte-realtime-api](https://github.com/flo-bit/svelte-openai-realtime-api) with lots of code adjusted from [openai-realtime-console](https://github.com/openai/openai-realtime-console), including the WavRecorder and WavStreamPlayer classes.
+## Your own values
+
+Core components accept arrays of values between 0 and 1:
+
+```svelte
+<script lang="ts">
+	import BarVisualizer from '$lib/visualizations/core/BarVisualizer.svelte';
+
+	let values = $state([0, 0.2, 0.8, 0.3, 1]);
+</script>
+
+<div style="height: 160px;"><BarVisualizer {values} /></div>
+```
+
+The array length controls the number of bars or points. Typed arrays work too; assign a new reference when updating them. `resampleValues(values, count)` from `core/utils` changes the number of samples.
+
+## Customization
+
+Swap `Bar` for `CircleBar`, `CircleCircles`, `DeformedCircle`, `InnerGlow`, `Microphone` or `Speaker` in the component name. Core microphone/speaker icons take a single `value` instead of `values`.
+
+Common options:
+
+- `color`, or `startHue` / `endHue` for a gradient.
+- `bands` for detail, `preset="voice"` or `"music"` for audio analysis.
+- `gain` for sensitivity, `attack` / `release` for smoothing.
+- `glow` on audio components, off by default. `blur` on deformed-circle/inner-glow components.
+- `fps` and `maxPixelRatio` to reduce rendering cost.
+
+See the [components](src/lib/visualizations) for visual-specific props and [audio/types.ts](src/lib/visualizations/audio/types.ts) for all audio options.
 
 ## License
 

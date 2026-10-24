@@ -1,22 +1,31 @@
 <script lang="ts">
-	export let value: number;
-
-	export let color: string | undefined = '#f59e0b';
-	export let backgroundColor: string | undefined = '#78350f';
-	export let accentColor: string | undefined = color;
+	import { amplitude } from './utils';
+	interface Props {
+		value: number;
+		color?: string;
+		backgroundColor?: string;
+		accentColor?: string;
+	}
+	let {
+		value,
+		color = '#f59e0b',
+		backgroundColor = '#78350f',
+		accentColor = color
+	}: Props = $props();
+	const maskId = $props.id();
 </script>
 
-<svg viewBox="0 0 24 24" style="height: 100%; width: 100%;">
-	<mask id="microphone-mask-vertical">
+<svg viewBox="0 0 24 24" aria-hidden="true" style="height: 100%; width: 100%;">
+	<mask id={maskId}>
 		<rect x="0" y="0" width="24" height="24" fill="white" />
-		<rect x="0" y="0" width="24" height={(1 - value) * 24} fill="black" />
+		<rect x="0" y="0" width="24" height={0.75 + (1 - amplitude(value)) * 15.75} fill="black" />
 	</mask>
 	<path
 		d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z"
 		fill={backgroundColor}
 	/>
 	<path
-		mask="url(#microphone-mask-vertical)"
+		mask={`url(#${maskId})`}
 		d="M8.25 4.5a3.75 3.75 0 1 1 7.5 0v8.25a3.75 3.75 0 1 1-7.5 0V4.5Z"
 		fill={accentColor}
 	/>

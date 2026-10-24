@@ -1,53 +1,57 @@
 <script lang="ts">
-	export let values: Float32Array;
+	import { canvasSurface } from './canvas.svelte';
+	import { amplitude } from './utils';
 
-	export let color: string | undefined = undefined;
-	export let startHue: number | undefined = undefined;
-	export let endHue: number | undefined = undefined;
-	export let barWidth = 0;
-	export let barSpacing = 0;
-	export let center = false;
-
-	let canvas: HTMLCanvasElement;
-	let contentRect: DOMRectReadOnly;
-
-	$: if (canvas && contentRect) {
-		const ctx = canvas.getContext('2d')!;
-
-		//Update canvas size
-		canvas.width = Math.round(contentRect.width) * 2;
-		canvas.height = Math.round(contentRect.height) * 2;
-
-		//Clear
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-		let width = barWidth;
-		let dets = values.length;
-
-		if (!dets) {
-			dets = Math.floor((canvas.width - barSpacing) / (Math.max(barWidth, 1) + barSpacing));
-		}
-		if (!barWidth) {
-			width = (canvas.width - barSpacing) / dets - barSpacing;
-		}
-
-		if (color !== undefined) ctx.fillStyle = color;
-
-		for (let i = 0; i < values.length; i++) {
-			const amplitude = Math.abs(values[i]);
-			const height = Math.max(1, amplitude * canvas.height);
-			const x = barSpacing + i * (width + barSpacing);
-			const y = center ? (canvas.height - height) / 2 : canvas.height - height;
-
-			if (startHue !== undefined && endHue !== undefined) {
-				let t = i / dets;
-
-				const hue = (startHue ?? 0) + t * (endHue - startHue);
-				ctx.fillStyle = `hsl(${hue % 360}, 100%, 50%)`;
-			}
-			ctx.fillRect(x, y, width, height);
-		}
+	interface Props {
+		values: ArrayLike<number>;
+		color?: string;
+		startHue?: number;
+		endHue?: number;
+		/** Width/spacing in CSS pixels. Zero width fits bars to the canvas. */
+		barWidth?: number;
+		barSpacing?: number;
+		center?: boolean;
+		maxPixelRatio?: number;
 	}
+	let {
+		values,
+		color = '#f59e0b',
+		startHue,
+		endHue,
+		barWidth = 0,
+		barSpacing = 0,
+		center = false,
+		maxPixelRatio = 2
+	}: Props = $props();
+	let canvas = $state<HTMLCanvasElement>();
+	const surface = canvasSurface(
+		() => canvas,
+		() => maxPixelRatio
+	);
+
+	$effect(() =>
+		surface.draw((ctx, width, height) => {
+			const count = values.length;
+			if (!count) return;
+			const spacing = Math.max(0, barSpacing);
+			const size = barWidth > 0 ? barWidth : Math.max(0, (width - spacing * (count + 1)) / count);
+			ctx.fillStyle = color;
+			for (let i = 0; i < count; i++) {
+				const barHeight = Math.max(1, amplitude(values[i]) * height);
+				if (startHue !== undefined && endHue !== undefined) {
+					const hue = startHue + (i / Math.max(1, count - 1)) * (endHue - startHue);
+					ctx.fillStyle = `hsl(${hue % 360}, 100%, 50%)`;
+				}
+				ctx.fillRect(
+					spacing + i * (size + spacing),
+					center ? (height - barHeight) / 2 : height - barHeight,
+					size,
+					barHeight
+				);
+			}
+		})
+	);
 </script>
 
-<canvas bind:this={canvas} bind:contentRect style="height: 100%; width: 100%;"></canvas>
+<canvas bind:this={canvas} aria-hidden="true" style="display: block; height: 100%; width: 100%;"
+></canvas>

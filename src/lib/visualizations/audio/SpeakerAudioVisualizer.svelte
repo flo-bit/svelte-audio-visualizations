@@ -1,16 +1,15 @@
 <script lang="ts">
-	import type { WavRecorder, AudioFilePlayer, WavStreamPlayer } from '$lib/visualizations/wavtools';
-	import AudioFrequency from './AudioFrequency.svelte';
+	import type { ComponentProps } from 'svelte';
+	import type { AudioProps } from './types';
+	import { useAudio } from './audio.svelte';
 	import Glow from '../core/Glow.svelte';
 	import SpeakerVisualizer from '../core/SpeakerVisualizer.svelte';
 
-	export let audio: AudioFilePlayer | WavRecorder | WavStreamPlayer | null;
-	export let glow: number | undefined = 3;
-	export let analysisType: 'music' | 'voice' | 'frequency' = 'frequency';
+	let props: AudioProps &
+		Omit<ComponentProps<typeof SpeakerVisualizer>, 'value'> & { glow?: number } = $props();
+	const audio = useAudio(() => props);
 </script>
 
-<AudioFrequency {audio} {analysisType} let:getValues>
-	<Glow {glow}>
-		<SpeakerVisualizer value={getValues(1)[0]} {...$$restProps} />
-	</Glow>
-</AudioFrequency>
+<Glow glow={props.glow ?? 0}>
+	<SpeakerVisualizer {...props} value={audio.frame.level} />
+</Glow>

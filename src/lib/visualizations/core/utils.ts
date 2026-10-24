@@ -1,85 +1,49 @@
-const dataMap = new WeakMap();
-
-import { onMount } from 'svelte';
-
-export async function raf(callback: () => void) {
-	let mounted = true;
-
-	async function render() {
-		if (!mounted || !callback) return;
-
-		try {
-			callback();
-		} catch (e) {
-			console.error(e);
-		}
-		requestAnimationFrame(render);
-	}
-
-	onMount(() => {
-		render();
-		return () => (mounted = false);
-	});
+/** Clamp a normalized amplitude, treating non-finite input as silence. */
+export function amplitude(value: number): number {
+	return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 }
 
 /**
- * Normalizes a Float32Array to Array(m): We use this to draw amplitudes on a graph
- * If we're rendering the same audio data, then we'll often be using
- * the same (data, m, downsamplePeaks) triplets so we give option to memoize
+ * Resample normalized values using average/peak downsampling or linear interpolation.
+ * This changes the number of samples, not their amplitude range. An optional output
+ * buffer avoids allocations. Empty input produces silence; invalid sizes throw.
  */
-export const normalizeArray = (
-	data: Float32Array,
-	m: number,
-	downsamplePeaks: boolean = false,
-	memoize: boolean = false
-) => {
-	let cache, mKey, dKey;
-	if (memoize) {
-		mKey = m.toString();
-		dKey = downsamplePeaks.toString();
-		cache = dataMap.has(data) ? dataMap.get(data) : {};
-		dataMap.set(data, cache);
-		cache[mKey] = cache[mKey] || {};
-		if (cache[mKey][dKey]) {
-			return cache[mKey][dKey];
-		}
-	}
+export function resampleValues(
+	data: ArrayLike<number>,
+	size: number,
+	mode: 'average' | 'peak' = 'average',
+	output = new Float32Array(validSize(size))
+): Float32Array {
+	validSize(size);
+	if (output.length !== size) throw new RangeError('Output length must match size');
+	if (output === data) throw new TypeError('Input and output must be different buffers');
+	output.fill(0);
 	const n = data.length;
-	const result = new Array(m);
-	if (m <= n) {
-		// Downsampling
-		result.fill(0);
-		const count = new Array(m).fill(0);
-		for (let i = 0; i < n; i++) {
-			const index = Math.floor(i * (m / n));
-			if (downsamplePeaks) {
-				// take highest result in the set
-				result[index] = Math.max(result[index], Math.abs(data[i]));
-			} else {
-				result[index] += Math.abs(data[i]);
+	if (!n || !size) return output;
+	if (size <= n) {
+		for (let i = 0; i < size; i++) {
+			const start = Math.floor((i * n) / size);
+			const end = Math.floor(((i + 1) * n) / size);
+			let value = 0;
+			for (let j = start; j < end; j++) {
+				const sample = amplitude(data[j]);
+				value = mode === 'peak' ? Math.max(value, sample) : value + sample;
 			}
-			count[index]++;
-		}
-		if (!downsamplePeaks) {
-			for (let i = 0; i < result.length; i++) {
-				result[i] = result[i] / count[i];
-			}
+			output[i] = mode === 'peak' ? value : value / (end - start);
 		}
 	} else {
-		for (let i = 0; i < m; i++) {
-			const index = (i * (n - 1)) / (m - 1);
-			const low = Math.floor(index);
-			const high = Math.ceil(index);
-			const t = index - low;
-			if (high >= n) {
-				result[i] = data[n - 1];
-			} else {
-				result[i] = data[low] * (1 - t) + data[high] * t;
-			}
+		for (let i = 0; i < size; i++) {
+			const position = (i * (n - 1)) / (size - 1);
+			const low = Math.floor(position);
+			const t = position - low;
+			output[i] = amplitude(data[low]) * (1 - t) + amplitude(data[Math.min(low + 1, n - 1)]) * t;
 		}
 	}
-	if (memoize) {
-		cache[mKey as string][dKey as string] = result;
-	}
-	return result;
-};
+	return output;
+}
+
+function validSize(size: number): number {
+	if (!Number.isInteger(size) || size < 0)
+		throw new RangeError('Size must be a non-negative integer');
+	return size;
+}
